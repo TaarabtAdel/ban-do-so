@@ -105,6 +105,7 @@
     const place = places.find((p) => p.id === id);
     if (!place) return;
     const c = categoryById[place.category];
+    if (filterCategory && filterCategory !== place.category) setFilter(null);
     if (selectedId && selectedId !== id) setActive(selectedId, false);
     selectedId = id;
     setActive(id, true);
@@ -173,8 +174,22 @@
 
     const catId = e.target.closest("[data-cat]")?.dataset.cat;
     if (catId) {
-      expanded = expanded === catId ? null : catId;
-      renderCategories();
+      renderCategoryPlaces(catId);
+      return;
+    }
+    if (e.target.closest("[data-cat-back]")) {
+      renderCategoryGrid();
+      return;
+    }
+    const showCat = e.target.closest("[data-show-cat]")?.dataset.showCat;
+    if (showCat) {
+      closeSheet();
+      setFilter(showCat);
+      return;
+    }
+    if (e.target.closest("[data-more]")) {
+      menu.limit += PAGE_SIZE;
+      renderCategoryList();
       return;
     }
 
@@ -182,42 +197,119 @@
     if (placeId) openPlace(placeId, { fly: true });
   });
 
-  // ---------- Danh mục ----------
-  let expanded = null;
+  $("sheet-body").addEventListener("input", (e) => {
+    if (e.target.id !== "cat-search") return;
+    menu.query = e.target.value;
+    menu.limit = PAGE_SIZE;
+    renderCategoryList();
+  });
 
-  const renderCategories = () => {
-    $("sheet-body").innerHTML = categories
+  // ---------- Danh mục (2 bước: lưới danh mục → danh sách điểm) ----------
+  // Chịu được xã/phường có hàng trăm điểm: không xổ dài, có tìm kiếm, sắp theo khoảng cách, hiện dần theo trang.
+  const PAGE_SIZE = 30;
+  const menu = { categoryId: null, query: "", limit: PAGE_SIZE };
+  let myPosition = null;
+
+  const distanceM = ([lat1, lng1], [lat2, lng2]) => {
+    const rad = (d) => (d * Math.PI) / 180;
+    const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
+    return 2 * 6_371_000 * Math.asin(Math.sqrt(a));
+  };
+  const formatDistance = (m) => (m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1).replace(".", ",")} km`);
+
+  const countOf = (id) => places.filter((p) => p.category === id).length;
+
+  const renderCategoryGrid = () => {
+    menu.categoryId = null;
+    $("sheet-head").hidden = false;
+    $("sheet-title").textContent = "Danh mục địa điểm";
+    $("sheet-body").innerHTML = `<div class="cat-grid">${categories
       .map((c) => {
-        const items = places.filter((p) => p.category === c.id);
-        const open = expanded === c.id;
-        const list = open && !items.length
-          ? `<p class="cat-empty">Chưa có dữ liệu, đang cập nhật.</p>`
-          : open
-          ? `<ul class="cat-places">${items
-              .map(
-                (p) => `<li><button type="button" data-place="${p.id}">
-                  <span class="dot" style="background:${c.color}"></span>
-                  <span><b>${escapeHtml(p.name)}</b><small>${escapeHtml(p.address)}</small></span>
-                  <span class="go">›</span>
-                </button></li>`,
-              )
-              .join("")}</ul>`
-          : "";
-        return `<div class="cat${open ? " open" : ""}">
-          <button type="button" class="cat-row" data-cat="${c.id}" aria-expanded="${open}">
-            <span class="cat-icon" style="background:${c.color}">${c.svg}</span>
-            <span class="cat-name">${escapeHtml(c.name)}</span>
-            <span class="cat-count">${items.length}</span>
-            <span class="chevron">⌄</span>
-          </button>${list}</div>`;
+        const count = countOf(c.id);
+        return `<button type="button" class="cat-tile${count ? "" : " is-empty"}" data-cat="${c.id}">
+          <span class="cat-icon" style="background:${c.color}">${c.svg}</span>
+          <b>${escapeHtml(c.name)}</b>
+          <small>${count ? `${count} điểm` : "Đang cập nhật"}</small>
+        </button>`;
       })
-      .join("");
+      .join("")}</div>`;
+    $("sheet-body").scrollTop = 0;
+  };
+
+  const renderCategoryPlaces = (id) => {
+    const c = categoryById[id];
+    const count = countOf(id);
+    Object.assign(menu, { categoryId: id, query: "", limit: PAGE_SIZE });
+    $("sheet-head").hidden = true;
+    $("sheet-body").innerHTML = `
+      <div class="cat-head">
+        <button type="button" class="icon-btn" data-cat-back aria-label="Quay lại danh mục">‹</button>
+        <span class="cat-icon small" style="background:${c.color}">${c.svg}</span>
+        <h2>${escapeHtml(c.name)}</h2>
+        <span class="cat-count">${count}</span>
+      </div>
+      ${
+        count
+          ? `<button type="button" class="show-all" data-show-cat="${id}" style="background:${c.color}">Hiện tất cả ${count} điểm trên bản đồ</button>
+             ${count > 8 ? `<input id="cat-search" class="cat-search" type="search" placeholder="Tìm trong ${escapeHtml(c.name.toLowerCase())}" autocomplete="off" />` : ""}
+             <ul class="cat-places" id="cat-list"></ul>`
+          : `<p class="cat-empty">Chưa có dữ liệu, đang cập nhật.</p>`
+      }`;
+    $("sheet-body").scrollTop = 0;
+    if (count) renderCategoryList();
+  };
+
+  /** Chỉ vẽ lại danh sách (không vẽ lại ô tìm kiếm để không mất con trỏ khi đang gõ). */
+  const renderCategoryList = () => {
+    const c = categoryById[menu.categoryId];
+    const q = normalize(menu.query.trim());
+    const rows = places
+      .filter((p) => p.category === c.id && (!q || normalize(`${p.name} ${p.address}`).includes(q)))
+      .map((p) => ({ p, d: myPosition ? distanceM(myPosition, [p.lat, p.lng]) : null }))
+      .sort((a, b) => (myPosition ? a.d - b.d : a.p.name.localeCompare(b.p.name, "vi")));
+    const shown = rows.slice(0, menu.limit);
+    $("cat-list").innerHTML =
+      (rows.length === 0 ? `<li class="cat-empty">Không tìm thấy địa điểm phù hợp</li>` : "") +
+      shown
+        .map(
+          ({ p, d }) => `<li><button type="button" data-place="${p.id}">
+            <span class="dot" style="background:${c.color}"></span>
+            <span><b>${escapeHtml(p.name)}</b><small>${escapeHtml(p.address)}</small></span>
+            ${d != null ? `<em>${formatDistance(d)}</em>` : ""}
+            <span class="go">›</span>
+          </button></li>`,
+        )
+        .join("") +
+      (rows.length > menu.limit ? `<li><button type="button" class="more" data-more>Xem thêm ${Math.min(PAGE_SIZE, rows.length - menu.limit)} điểm</button></li>` : "");
   };
 
   $("open-categories").addEventListener("click", () => {
     openSheet({ heading: "Danh mục địa điểm", html: "" });
-    renderCategories();
+    renderCategoryGrid();
   });
+
+  // ---------- Lọc điểm theo danh mục trên bản đồ ----------
+  let filterCategory = null;
+
+  function setFilter(id) {
+    filterCategory = id;
+    places.forEach((p) => {
+      const show = !id || p.category === id;
+      if (show && !map.hasLayer(markers[p.id])) markers[p.id].addTo(map);
+      if (!show && map.hasLayer(markers[p.id])) markers[p.id].remove();
+    });
+    const chip = $("filter-chip");
+    chip.hidden = !id;
+    document.querySelector(".demo-note").hidden = !!id;
+    if (!id) return;
+    const c = categoryById[id];
+    chip.style.background = c.color;
+    chip.innerHTML = `Đang lọc: ${escapeHtml(c.name)} (${countOf(id)}) <span aria-hidden="true">✕</span>`;
+    const points = places.filter((p) => p.category === id).map((p) => [p.lat, p.lng]);
+    if (points.length) map.flyToBounds(points, { padding: [64, 64], maxZoom: 17, duration: 0.6 });
+  }
+
+  $("filter-chip").addEventListener("click", () => setFilter(null));
 
   // ---------- Thống kê ----------
   $("open-stats").addEventListener("click", () => {
@@ -292,6 +384,7 @@
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const pos = [coords.latitude, coords.longitude];
+        myPosition = pos;
         if (myMarker) myMarker.setLatLng(pos);
         else
           myMarker = L.marker(pos, {
