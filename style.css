@@ -532,6 +532,25 @@ button {
   background: #f59e0b;
 }
 
+.actions.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.action.call {
+  background: #ecfdf3;
+  border-color: #bbf0cf;
+}
+
+.action.call span {
+  background: #16a34a;
+}
+
+.cat-empty {
+  margin: 0 0 12px 48px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* Danh mục */
 .cat-row {
   display: flex;

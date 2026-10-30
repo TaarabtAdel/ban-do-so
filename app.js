@@ -98,6 +98,9 @@
   const ICON_SHARE =
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 13.3 7.6 4.4M15.8 6.3l-7.6 4.4"/></svg>';
 
+  const ICON_PHONE =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>';
+
   function openPlace(id, { fly = false } = {}) {
     const place = places.find((p) => p.id === id);
     if (!place) return;
@@ -122,12 +125,13 @@
         <p class="address">📍 ${escapeHtml(place.address)}, ${escapeHtml(communeName)}</p>
         ${place.description ? `<p class="desc" style="border-color:${c.color};background:${c.color}0D">${escapeHtml(place.description)}</p>` : ""}
         ${info ? `<dl class="info" style="background:${c.color}0A">${info}</dl>` : ""}
-        <div class="actions">
+        <div class="actions${place.phone ? " three" : ""}">
           <a class="action directions" target="_blank" rel="noopener"
              href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}&travelmode=driving">
             <span>${ICON_DIRECTIONS}</span>Chỉ đường
           </a>
           <button type="button" class="action share" data-share="${place.id}"><span>${ICON_SHARE}</span>Chia sẻ</button>
+          ${place.phone ? `<a class="action call" href="tel:${place.phone}"><span>${ICON_PHONE}</span>Gọi điện</a>` : ""}
         </div>`,
       onClose: () => {
         if (selectedId !== id) return;
@@ -186,7 +190,9 @@
       .map((c) => {
         const items = places.filter((p) => p.category === c.id);
         const open = expanded === c.id;
-        const list = open
+        const list = open && !items.length
+          ? `<p class="cat-empty">Chưa có dữ liệu, đang cập nhật.</p>`
+          : open
           ? `<ul class="cat-places">${items
               .map(
                 (p) => `<li><button type="button" data-place="${p.id}">
