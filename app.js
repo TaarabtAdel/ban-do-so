@@ -41,7 +41,6 @@
   fitBoundary();
 
   // ---------- Marker ----------
-  const hidden = new Set();
   const markers = {};
   let selectedId = null;
 
@@ -56,19 +55,9 @@
   places.forEach((place) => {
     markers[place.id] = L.marker([place.lat, place.lng], { icon: markerIcon(place, false), riseOnHover: true })
       .bindTooltip(place.name, { direction: "top", offset: [0, -16] })
-      .on("click", () => openPlace(place.id));
+      .on("click", () => openPlace(place.id))
+      .addTo(map);
   });
-
-  const syncMarkers = () => {
-    places.forEach((p) => {
-      const show = !hidden.has(p.category);
-      const marker = markers[p.id];
-      if (show && !map.hasLayer(marker)) marker.addTo(map);
-      if (!show && map.hasLayer(marker)) marker.remove();
-    });
-    $("category-count").hidden = hidden.size === 0;
-    $("category-count").textContent = `${categories.length - hidden.size}/${categories.length}`;
-  };
 
   const setActive = (id, active) => {
     const place = places.find((p) => p.id === id);
@@ -115,7 +104,6 @@
     const c = categoryById[place.category];
     if (selectedId && selectedId !== id) setActive(selectedId, false);
     selectedId = id;
-    if (hidden.delete(place.category)) syncMarkers();
     setActive(id, true);
     history.replaceState(null, "", `#${id}`);
 
@@ -149,8 +137,18 @@
       },
     });
 
-    if (fly) map.flyTo([place.lat, place.lng], Math.max(map.getZoom(), 16));
+    if (fly) flyToVisible(place);
   }
+
+  // Bay tới điểm sao cho không bị thẻ chi tiết che (dưới trên điện thoại, bên trái trên máy tính).
+  const flyToVisible = (place) => {
+    const zoom = Math.max(map.getZoom(), 17);
+    const panel = document.querySelector(".sheet-panel");
+    const desktop = window.matchMedia("(min-width: 900px)").matches;
+    const shift = desktop ? [-(panel.offsetWidth + 16) / 2, 0] : [0, panel.offsetHeight / 2];
+    const center = map.unproject(map.project([place.lat, place.lng], zoom).add(shift), zoom);
+    map.flyTo(center, zoom, { duration: 0.8 });
+  };
 
   $("sheet-body").addEventListener("click", async (e) => {
     const id = e.target.closest("[data-share]")?.dataset.share;
@@ -171,33 +169,43 @@
 
     const catId = e.target.closest("[data-cat]")?.dataset.cat;
     if (catId) {
-      if (hidden.has(catId)) hidden.delete(catId);
-      else hidden.add(catId);
-      syncMarkers();
+      expanded = expanded === catId ? null : catId;
       renderCategories();
+      return;
     }
-    if (e.target.closest("[data-show-all]")) {
-      hidden.clear();
-      syncMarkers();
-      renderCategories();
-    }
+
+    const placeId = e.target.closest("[data-place]")?.dataset.place;
+    if (placeId) openPlace(placeId, { fly: true });
   });
 
   // ---------- Danh mục ----------
+  let expanded = null;
+
   const renderCategories = () => {
-    $("sheet-body").innerHTML =
-      categories
-        .map((c) => {
-          const count = places.filter((p) => p.category === c.id).length;
-          const off = hidden.has(c.id);
-          return `<button type="button" class="cat-row${off ? " off" : ""}" data-cat="${c.id}">
+    $("sheet-body").innerHTML = categories
+      .map((c) => {
+        const items = places.filter((p) => p.category === c.id);
+        const open = expanded === c.id;
+        const list = open
+          ? `<ul class="cat-places">${items
+              .map(
+                (p) => `<li><button type="button" data-place="${p.id}">
+                  <span class="dot" style="background:${c.color}"></span>
+                  <span><b>${escapeHtml(p.name)}</b><small>${escapeHtml(p.address)}</small></span>
+                  <span class="go">›</span>
+                </button></li>`,
+              )
+              .join("")}</ul>`
+          : "";
+        return `<div class="cat${open ? " open" : ""}">
+          <button type="button" class="cat-row" data-cat="${c.id}" aria-expanded="${open}">
             <span class="cat-icon" style="background:${c.color}">${c.svg}</span>
             <span class="cat-name">${escapeHtml(c.name)}</span>
-            <span class="cat-count">${count}</span>
-            <span class="check">${off ? "" : "✓"}</span>
-          </button>`;
-        })
-        .join("") + `<button type="button" class="outline-btn" data-show-all>Hiện tất cả</button>`;
+            <span class="cat-count">${items.length}</span>
+            <span class="chevron">⌄</span>
+          </button>${list}</div>`;
+      })
+      .join("");
   };
 
   $("open-categories").addEventListener("click", () => {
@@ -301,7 +309,6 @@
   }
 
   // ---------- Khởi động ----------
-  syncMarkers();
   const initial = location.hash.slice(1);
   if (initial) openPlace(initial, { fly: true });
 })();
