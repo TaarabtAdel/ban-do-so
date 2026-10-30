@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bản đồ tiện ích xã Triệu Cơ – tỉnh Quảng Trị</title>
+    <meta name="description" content="Tra cứu vị trí UBND, công an, trạm y tế, trường học, chợ, cây xăng... tại xã Triệu Cơ, tỉnh Quảng Trị." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="container">
+        <p class="eyebrow">Bản đồ số · <span id="province"></span></p>
+        <h1>Bản đồ tiện ích <span id="commune-name"></span></h1>
+        <p class="lead">
+          Tra cứu nhanh vị trí và đường đi đến UBND, công an, trạm y tế, trường học, chợ, cây xăng... trên địa bàn xã.
+        </p>
+        <ul class="facts" id="facts"></ul>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="tiles" id="tiles" aria-label="Danh mục tiện ích"></section>
+
+      <section class="viewer">
+        <div class="info">
+          <p class="locating">Đang định vị</p>
+          <span class="badge" id="info-group"></span>
+          <h2 id="info-title"></h2>
+          <p id="info-desc" class="desc"></p>
+          <ul class="points" id="info-points"></ul>
+          <div class="buttons">
+            <a class="btn primary" id="btn-directions" target="_blank" rel="noopener">Chỉ đường</a>
+            <a class="btn" id="btn-gmaps" target="_blank" rel="noopener">Mở Google Maps</a>
+          </div>
+          <p class="note">Vị trí đang tìm theo Google Maps, mang tính tham khảo. Toạ độ chính thức sẽ được cập nhật.</p>
+        </div>
+        <div class="map">
+          <iframe id="map-frame" title="Bản đồ" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+        </div>
+      </section>
+    </main>
+
+    <footer class="container footer">Dữ liệu mang tính tham khảo · Bản đồ: Google Maps</footer>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
