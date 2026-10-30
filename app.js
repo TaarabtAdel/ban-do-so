@@ -1,87 +1,307 @@
 (() => {
-  const { commune, categories } = window.MAP_DATA;
+  const { categories, boundary, places, communeName, title, subtitle } = window.MAP_DATA;
+  const categoryById = Object.fromEntries(categories.map((c) => [c.id, c]));
   const $ = (id) => document.getElementById(id);
+
+  const normalize = (s) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase();
 
   const escapeHtml = (s) =>
     String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
 
-  const svg = (paths, size = 20) =>
-    `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  document.title = title;
+  $("title").textContent = title;
+  $("subtitle").textContent = subtitle;
 
-  // Đầu trang
-  $("commune-name").textContent = commune.name;
-  $("province").textContent = commune.province;
-  document.title = `Bản đồ tiện ích ${commune.name} – ${commune.province}`;
-  $("facts").innerHTML = [
-    ["Diện tích", commune.area],
-    ["Dân số", commune.population],
-    ["Mật độ", commune.density],
-    ["Sáp nhập từ", commune.mergedFrom.map((n) => `xã ${n}`).join(", ")],
-    ["Trụ sở", commune.office],
-  ]
-    .map(([label, value]) => `<li>${label}<b>${escapeHtml(value)}</b></li>`)
-    .join("");
+  // ---------- Bản đồ ----------
+  const esri = (path) => `https://server.arcgisonline.com/ArcGIS/rest/services/${path}/MapServer/tile/{z}/{y}/{x}`;
+  const LAYERS = {
+    map: L.tileLayer(esri("World_Street_Map"), { maxZoom: 19, attribution: "&copy; Esri" }),
+    satellite: L.layerGroup([
+      L.tileLayer(esri("World_Imagery"), { maxZoom: 19, attribution: "&copy; Esri" }),
+      L.tileLayer(esri("Reference/World_Boundaries_and_Places"), { maxZoom: 19 }),
+    ]),
+  };
+  let layer = "map";
 
-  // Ô tiện ích
-  const shortName = commune.name.replace(/^xã\s+/i, "Xã ");
-  $("tiles").innerHTML = categories
-    .map(
-      (c) => `<button type="button" class="tile" data-id="${c.id}">
-        <span class="tile-icon" style="background:${c.bg};color:${c.color}">${svg(c.icon)}</span>
-        <span class="tile-text"><b>${escapeHtml(c.label)}</b><span>${escapeHtml(shortName)}</span></span>
-      </button>`,
-    )
-    .join("");
+  const map = L.map("map", { zoomControl: false });
+  LAYERS.map.addTo(map);
+  map.attributionControl.addAttribution("Ranh giới &copy; OpenStreetMap");
+  L.control.scale({ position: "bottomleft", imperial: false }).addTo(map);
 
-  // Bản đồ
-  const target = (category, point) => (point ? `${point.lat},${point.lng}` : category.query);
-  const embedUrl = (category, point) =>
-    `https://maps.google.com/maps?q=${encodeURIComponent(target(category, point))}&z=${point ? 17 : 14}&hl=vi&output=embed`;
-  const gmapsUrl = (category, point) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(target(category, point))}`;
-  const directionsUrl = (category, point) =>
-    `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(target(category, point))}`;
+  const boundaryLayer = L.polygon(boundary, {
+    color: "#1E3A6E",
+    weight: 3,
+    fillColor: "#64748B",
+    fillOpacity: 0.12,
+  }).addTo(map);
+  boundaryLayer.bindTooltip(communeName, { permanent: true, direction: "center", className: "commune-label" });
 
-  let current = null;
+  const fitBoundary = () => map.fitBounds(boundaryLayer.getBounds(), { padding: [24, 24] });
+  fitBoundary();
 
-  const showPoint = (category, point) => {
-    $("map-frame").src = embedUrl(category, point);
-    $("btn-gmaps").href = gmapsUrl(category, point);
-    $("btn-directions").href = directionsUrl(category, point);
-    document.querySelectorAll("#info-points button").forEach((b) => b.classList.toggle("active", point && b.dataset.index === String(category.points.indexOf(point))));
+  // ---------- Marker ----------
+  const hidden = new Set();
+  const markers = {};
+  let selectedId = null;
+
+  const markerIcon = (place, active) =>
+    L.divIcon({
+      className: "",
+      iconSize: [34, 34],
+      iconAnchor: [17, 17],
+      html: `<div class="marker${active ? " active" : ""}" style="background:${categoryById[place.category].color}">${categoryById[place.category].svg}</div>`,
+    });
+
+  places.forEach((place) => {
+    markers[place.id] = L.marker([place.lat, place.lng], { icon: markerIcon(place, false), riseOnHover: true })
+      .bindTooltip(place.name, { direction: "top", offset: [0, -16] })
+      .on("click", () => openPlace(place.id));
+  });
+
+  const syncMarkers = () => {
+    places.forEach((p) => {
+      const show = !hidden.has(p.category);
+      const marker = markers[p.id];
+      if (show && !map.hasLayer(marker)) marker.addTo(map);
+      if (!show && map.hasLayer(marker)) marker.remove();
+    });
+    $("category-count").hidden = hidden.size === 0;
+    $("category-count").textContent = `${categories.length - hidden.size}/${categories.length}`;
   };
 
-  const select = (id, { scroll = false } = {}) => {
-    const category = categories.find((c) => c.id === id) ?? categories[0];
-    current = category;
-    document.querySelectorAll(".tile").forEach((t) => t.classList.toggle("active", t.dataset.id === category.id));
+  const setActive = (id, active) => {
+    const place = places.find((p) => p.id === id);
+    if (place) markers[id].setIcon(markerIcon(place, active)).setZIndexOffset(active ? 1000 : 0);
+  };
 
-    $("info-group").textContent = category.group;
-    $("info-group").style.cssText = `background:${category.bg};color:${category.color}`;
-    $("info-title").textContent = category.title;
-    $("info-desc").textContent = category.description;
-    $("info-points").innerHTML = category.points
-      .map(
-        (p, i) => `<li><button type="button" data-index="${i}">${escapeHtml(p.name)}${p.address ? `<small>${escapeHtml(p.address)}</small>` : ""}</button></li>`,
-      )
+  // ---------- Bảng trượt ----------
+  let onSheetClose = null;
+
+  const openSheet = ({ heading, html, onClose }) => {
+    const previous = onSheetClose;
+    onSheetClose = null;
+    previous?.();
+    $("sheet-head").hidden = !heading;
+    $("sheet-title").textContent = heading ?? "";
+    $("sheet-body").innerHTML = html;
+    $("sheet-body").scrollTop = 0;
+    $("sheet").hidden = false;
+    onSheetClose = onClose ?? null;
+  };
+
+  const closeSheet = () => {
+    if ($("sheet").hidden) return;
+    $("sheet").hidden = true;
+    const cb = onSheetClose;
+    onSheetClose = null;
+    cb?.();
+  };
+
+  $("sheet").addEventListener("click", (e) => {
+    if (e.target.closest("[data-close]")) closeSheet();
+  });
+  document.addEventListener("keydown", (e) => e.key === "Escape" && closeSheet());
+
+  // ---------- Chi tiết địa điểm ----------
+  const ICON_DIRECTIONS =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7"/></svg>';
+  const ICON_SHARE =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 13.3 7.6 4.4M15.8 6.3l-7.6 4.4"/></svg>';
+
+  function openPlace(id, { fly = false } = {}) {
+    const place = places.find((p) => p.id === id);
+    if (!place) return;
+    const c = categoryById[place.category];
+    if (selectedId && selectedId !== id) setActive(selectedId, false);
+    selectedId = id;
+    if (hidden.delete(place.category)) syncMarkers();
+    setActive(id, true);
+    history.replaceState(null, "", `#${id}`);
+
+    const info = (place.info ?? [])
+      .map((row) => `<div><dt style="color:${c.color}">${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd></div>`)
       .join("");
-    document.querySelector(".note").hidden = category.points.length > 0;
 
-    showPoint(category, category.points[0]);
-    history.replaceState(null, "", `#${category.id}`);
-    if (scroll && window.matchMedia("(max-width: 860px)").matches) {
-      document.querySelector(".viewer").scrollIntoView({ behavior: "smooth", block: "start" });
+    openSheet({
+      html: `
+        <div class="cover" style="background:linear-gradient(135deg, ${c.color}, ${c.color}99)">
+          ${c.svg}
+          <button type="button" class="icon-btn" data-close aria-label="Đóng">✕</button>
+        </div>
+        <span class="tag" style="background:${c.color}">${escapeHtml(place.tag ?? c.name)}</span>
+        <h2 class="place-name">${escapeHtml(place.name)}</h2>
+        <p class="address">📍 ${escapeHtml(place.address)}, ${escapeHtml(communeName)}</p>
+        ${place.description ? `<p class="desc" style="border-color:${c.color};background:${c.color}0D">${escapeHtml(place.description)}</p>` : ""}
+        ${info ? `<dl class="info" style="background:${c.color}0A">${info}</dl>` : ""}
+        <div class="actions">
+          <a class="action directions" target="_blank" rel="noopener"
+             href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}&travelmode=driving">
+            <span>${ICON_DIRECTIONS}</span>Chỉ đường
+          </a>
+          <button type="button" class="action share" data-share="${place.id}"><span>${ICON_SHARE}</span>Chia sẻ</button>
+        </div>`,
+      onClose: () => {
+        if (selectedId !== id) return;
+        setActive(id, false);
+        selectedId = null;
+        history.replaceState(null, "", location.pathname + location.search);
+      },
+    });
+
+    if (fly) map.flyTo([place.lat, place.lng], Math.max(map.getZoom(), 16));
+  }
+
+  $("sheet-body").addEventListener("click", async (e) => {
+    const id = e.target.closest("[data-share]")?.dataset.share;
+    if (id) {
+      const place = places.find((p) => p.id === id);
+      const url = `${location.origin}${location.pathname}#${id}`;
+      try {
+        if (navigator.share) await navigator.share({ title: place.name, text: `${place.name} - ${communeName}`, url });
+        else {
+          await navigator.clipboard.writeText(url);
+          toast("Đã sao chép liên kết");
+        }
+      } catch {
+        // Người dùng huỷ chia sẻ.
+      }
+      return;
     }
+
+    const catId = e.target.closest("[data-cat]")?.dataset.cat;
+    if (catId) {
+      if (hidden.has(catId)) hidden.delete(catId);
+      else hidden.add(catId);
+      syncMarkers();
+      renderCategories();
+    }
+    if (e.target.closest("[data-show-all]")) {
+      hidden.clear();
+      syncMarkers();
+      renderCategories();
+    }
+  });
+
+  // ---------- Danh mục ----------
+  const renderCategories = () => {
+    $("sheet-body").innerHTML =
+      categories
+        .map((c) => {
+          const count = places.filter((p) => p.category === c.id).length;
+          const off = hidden.has(c.id);
+          return `<button type="button" class="cat-row${off ? " off" : ""}" data-cat="${c.id}">
+            <span class="cat-icon" style="background:${c.color}">${c.svg}</span>
+            <span class="cat-name">${escapeHtml(c.name)}</span>
+            <span class="cat-count">${count}</span>
+            <span class="check">${off ? "" : "✓"}</span>
+          </button>`;
+        })
+        .join("") + `<button type="button" class="outline-btn" data-show-all>Hiện tất cả</button>`;
   };
 
-  $("tiles").addEventListener("click", (e) => {
-    const tile = e.target.closest(".tile");
-    if (tile) select(tile.dataset.id, { scroll: true });
+  $("open-categories").addEventListener("click", () => {
+    openSheet({ heading: "Danh mục địa điểm", html: "" });
+    renderCategories();
   });
 
-  $("info-points").addEventListener("click", (e) => {
-    const button = e.target.closest("button[data-index]");
-    if (button && current) showPoint(current, current.points[Number(button.dataset.index)]);
+  // ---------- Thống kê ----------
+  $("open-stats").addEventListener("click", () => {
+    const max = Math.max(...categories.map((c) => places.filter((p) => p.category === c.id).length), 1);
+    openSheet({
+      heading: "Thống kê địa điểm",
+      html:
+        `<p class="stat-total">Tổng cộng <b style="color:var(--text)">${places.length}</b> địa điểm trên địa bàn ${escapeHtml(communeName)}</p>` +
+        categories
+          .map((c) => {
+            const count = places.filter((p) => p.category === c.id).length;
+            return `<div class="stat-row"><div><span>${escapeHtml(c.name)}</span><b>${count}</b></div>
+              <div class="bar"><span style="width:${(count / max) * 100}%;background:${c.color}"></span></div></div>`;
+          })
+          .join(""),
+    });
   });
 
-  select(location.hash.slice(1));
+  // ---------- Tìm kiếm ----------
+  const renderResults = () => {
+    const q = normalize($("search").value.trim());
+    $("search-clear").hidden = !q;
+    if (!q) {
+      $("results").hidden = true;
+      return;
+    }
+    const found = places.filter((p) => normalize(`${p.name} ${p.address} ${categoryById[p.category].name}`).includes(q)).slice(0, 8);
+    $("results").hidden = false;
+    $("results").innerHTML = found.length
+      ? found
+          .map((p) => {
+            const c = categoryById[p.category];
+            return `<li><button type="button" data-id="${p.id}"><span class="dot" style="background:${c.color}"></span>
+              <span><b>${escapeHtml(p.name)}</b><small>${escapeHtml(c.name)} • ${escapeHtml(p.address)}</small></span></button></li>`;
+          })
+          .join("")
+      : `<li class="empty">Không tìm thấy địa điểm</li>`;
+  };
+
+  $("search").addEventListener("input", renderResults);
+  $("search-clear").addEventListener("click", () => {
+    $("search").value = "";
+    renderResults();
+  });
+  $("results").addEventListener("click", (e) => {
+    const id = e.target.closest("[data-id]")?.dataset.id;
+    if (!id) return;
+    $("search").value = "";
+    renderResults();
+    $("search").blur();
+    openPlace(id, { fly: true });
+  });
+
+  // ---------- Điều khiển ----------
+  $("zoom-in").addEventListener("click", () => map.zoomIn());
+  $("zoom-out").addEventListener("click", () => map.zoomOut());
+  $("fit-boundary").addEventListener("click", fitBoundary);
+
+  $("toggle-layer").addEventListener("click", () => {
+    map.removeLayer(LAYERS[layer]);
+    layer = layer === "map" ? "satellite" : "map";
+    LAYERS[layer].addTo(map);
+    $("toggle-layer").classList.toggle("active", layer === "satellite");
+  });
+
+  let myMarker;
+  $("locate").addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      toast("Trình duyệt không hỗ trợ định vị");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const pos = [coords.latitude, coords.longitude];
+        if (myMarker) myMarker.setLatLng(pos);
+        else
+          myMarker = L.marker(pos, {
+            icon: L.divIcon({ className: "", iconSize: [18, 18], iconAnchor: [9, 9], html: '<div class="my-location"></div>' }),
+            zIndexOffset: 2000,
+          }).addTo(map);
+        map.flyTo(pos, 16);
+      },
+      () => toast("Bạn cần cho phép truy cập vị trí để dùng tính năng này"),
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
+  });
+
+  // ---------- Thông báo ----------
+  let toastTimer;
+  function toast(text) {
+    $("toast").textContent = text;
+    $("toast").hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => ($("toast").hidden = true), 2500);
+  }
+
+  // ---------- Khởi động ----------
+  syncMarkers();
+  const initial = location.hash.slice(1);
+  if (initial) openPlace(initial, { fly: true });
 })();
