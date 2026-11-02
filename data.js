@@ -12,8 +12,6 @@ window.MAP_DATA = (() => {
     { id: "buu-dien", name: "Bưu điện", color: "#DB2777", svg: icon('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>') },
     { id: "cay-xang", name: "Cây xăng", color: "#EA580C", svg: icon('<path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"/>') },
     { id: "cho", name: "Chợ / Siêu thị", color: "#7C3AED", svg: icon('<path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>') },
-    { id: "quan-an", name: "Quán ăn ngon", color: "#E11D48", svg: icon('<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 2-3 5v5h3v8"/>') },
-    { id: "cafe", name: "Quán cafe", color: "#D97706", svg: icon('<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9ZM16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3v3M12 3v3"/>') },
     { id: "xe-buyt", name: "Trạm xe buýt", color: "#0284C7", svg: icon('<rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/>') },
     { id: "khu-dan-cu", name: "Khu dân cư", color: "#CA8A04", svg: icon('<path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6"/>') },
     {
@@ -23,6 +21,8 @@ window.MAP_DATA = (() => {
       color: "#B91C1C",
       svg: icon('<path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7L12 3Z"/>'),
     },
+    { id: "quan-an", name: "Quán ăn ngon", color: "#E11D48", svg: icon('<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 2-3 5v5h3v8"/>') },
+    { id: "cafe", name: "Quán cafe", color: "#D97706", svg: icon('<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9ZM16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3v3M12 3v3"/>') },
   ];
 
   // Sản phẩm OCOP: mỗi sản phẩm là 1 điểm tại cơ sở sản xuất (nguồn: UBND huyện Triệu Phong, Sở NN&MT Quảng Trị, cổng TTĐT xã Triệu Cơ).
