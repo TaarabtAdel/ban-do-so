@@ -16,6 +16,93 @@ window.MAP_DATA = (() => {
     { id: "cafe", name: "Quán cafe", color: "#D97706", svg: icon('<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9ZM16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3v3M12 3v3"/>') },
     { id: "xe-buyt", name: "Trạm xe buýt", color: "#0284C7", svg: icon('<rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/>') },
     { id: "khu-dan-cu", name: "Khu dân cư", color: "#CA8A04", svg: icon('<path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6"/>') },
+    {
+      id: "ocop",
+      name: "Sản phẩm OCOP",
+      unit: "sản phẩm",
+      color: "#B91C1C",
+      svg: icon('<path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7L12 3Z"/>'),
+    },
+  ];
+
+  // Sản phẩm OCOP: mỗi sản phẩm là 1 điểm tại cơ sở sản xuất (nguồn: UBND huyện Triệu Phong, Sở NN&MT Quảng Trị, cổng TTĐT xã Triệu Cơ).
+  const ocop = (id, name, stars, producer, year, extra) => ({
+    id,
+    name,
+    category: "ocop",
+    stars,
+    producer,
+    tag: `OCOP ${"★".repeat(stars)} ${stars} sao`,
+    ...extra,
+    info: [
+      { label: "Hạng OCOP", value: `${"★".repeat(stars)} (${stars} sao)` },
+      { label: "Chủ thể", value: producer },
+      { label: "Năm công nhận", value: year },
+    ],
+  });
+  const DONG_TRIEU = { lat: 16.769688, lng: 107.215872, address: "Thôn Thâm Triều, khu vực Triệu Tài (cũ)", phone: "0905583187" };
+  const VAN_LINH = { lat: 16.78992, lng: 107.261173, address: "Làng nghề bún Linh Chiểu", phone: "0916801689" };
+  const TRAN_LAN = { lat: 16.795764, lng: 107.243604, address: "Thôn Phương An", phone: "0919410234" };
+
+  const ocopProducts = [
+    ocop("ocop-gao-sach-trieu-phong", "Gạo sạch Triệu Phong", 4, "HTX Nông sản sạch canh tác tự nhiên Triệu Phong", "2020 (gia hạn 2022)", {
+      lat: 16.7889,
+      lng: 107.22,
+      address: "Thôn An Hưng (nay là An Phú Tài) – vị trí ước lượng",
+      phone: "0942860357",
+      description: "Gạo canh tác tự nhiên đạt tiêu chuẩn hữu cơ TCVN 11041, không phân bón hoá học, không thuốc bảo vệ thực vật. Cơm dẻo, thơm nhẹ.",
+    }),
+    ocop("ocop-bot-tia-to-dong-trieu", "Bột tía tô Đông Triều", 4, "HTX Nông nghiệp sạch Đông Triều", "2022", {
+      ...DONG_TRIEU,
+      description: "Bột tía tô sấy lạnh từ lá tía tô trồng hữu cơ, giữ màu và dưỡng chất tự nhiên.",
+    }),
+    ocop("ocop-bot-diep-ca-dong-trieu", "Bột diếp cá Đông Triều", 4, "HTX Nông nghiệp sạch Đông Triều", "2022", {
+      ...DONG_TRIEU,
+      description: "Bột diếp cá sấy lạnh nguyên chất, dùng pha uống hoặc làm đẹp.",
+    }),
+    ocop("ocop-bot-rau-ma-dong-trieu", "Bột rau má Đông Triều", 4, "HTX Nông nghiệp sạch Đông Triều", "2022", {
+      ...DONG_TRIEU,
+      description: "Bột rau má sấy lạnh nguyên chất, thanh mát.",
+    }),
+    ocop("ocop-mien-tia-to", "Miến tía tô", 3, "HTX Nông nghiệp sạch Đông Triều", "2022", {
+      ...DONG_TRIEU,
+      description: "Miến làm từ tinh bột kết hợp lá tía tô, màu tự nhiên.",
+    }),
+    ocop("ocop-mien-nghe", "Miến nghệ Đông Triều", 3, "HTX Nông nghiệp sạch Đông Triều", "2022", {
+      ...DONG_TRIEU,
+      description: "Miến nghệ màu vàng tự nhiên từ củ nghệ.",
+    }),
+    ocop("ocop-bun-sach-van-linh", "Bún sạch Vạn Linh", 3, "Cơ sở sản xuất thực phẩm Vạn Linh", "2023", {
+      ...VAN_LINH,
+      description: "Bún từ làng nghề Linh Chiểu hơn 100 năm tuổi, quy trình sạch khép kín, không chất bảo quản.",
+    }),
+    ocop("ocop-bot-banh-canh-tuoi", "Bột bánh canh tươi Vạn Linh", 3, "Cơ sở sản xuất thực phẩm Vạn Linh", "2023", {
+      ...VAN_LINH,
+      description: "Bột bánh canh tươi nhồi sẵn, tiện nấu bánh canh tại nhà.",
+    }),
+    ocop("ocop-bot-sen-que", "Bột sen quê dinh dưỡng", 3, "Nông sản sạch Trần Lan", "2022", {
+      ...TRAN_LAN,
+      description: "Bột ngũ cốc dinh dưỡng từ hạt sen quê và nông sản sạch địa phương.",
+    }),
+    ocop("ocop-bot-tia-to-say-lanh", "Bột tía tô sấy lạnh Trần Lan", 3, "Nông sản sạch Trần Lan", "2022", {
+      ...TRAN_LAN,
+      description: "Bột tía tô sấy lạnh giữ trọn hương vị và màu sắc.",
+    }),
+    ocop("ocop-ngu-coc-tran-lan", "Ngũ cốc cao cấp Trần Lan", 3, "Nông sản sạch Trần Lan", "2023", {
+      ...TRAN_LAN,
+      description: "Bột ngũ cốc cao cấp từ các loại hạt, đậu và gạo lứt.",
+    }),
+    ocop("ocop-banh-com-gao-lut", "Bánh cốm gạo lứt mè quê", 3, "Nông sản sạch Trần Lan", "2023", {
+      ...TRAN_LAN,
+      description: "Bánh cốm gạo lứt với mè quê, ăn vặt lành mạnh.",
+    }),
+    ocop("ocop-nuoc-mam-gia-dang", "Nước mắm Gia Đẳng đặc biệt", 3, "Cơ sở sản xuất nước mắm Hải Long", "2023", {
+      lat: 16.802724,
+      lng: 107.29628,
+      address: "Thôn 1 (làng Gia Đẳng), khu vực Triệu Lăng (cũ)",
+      phone: "0979384583",
+      description: "Nước mắm cốt nhĩ ủ chượp gài nén thủ công theo làng nghề Gia Đẳng hơn 300 năm.",
+    }),
   ];
 
   const places = [
@@ -135,6 +222,8 @@ window.MAP_DATA = (() => {
     { id: "cafe-house", name: "The cà phê house", category: "cafe", lat: 16.799877, lng: 107.235999, address: "Xóm 1, thôn An Lưu", description: "Quán cà phê." },
     { id: "cafe-le-hoai-sang", name: "Cafe Lê Hoài Sáng", category: "cafe", lat: 16.7972, lng: 107.2426, address: "Xóm Cụt, thôn An Lưu", description: "Quán cafe có wifi." },
     { id: "thon-my-khe", name: "Thôn Mỹ Khê", category: "khu-dan-cu", lat: 16.77289, lng: 107.24908, address: "Thôn Mỹ Khê", description: "Khu dân cư thôn Mỹ Khê." },
+
+    ...ocopProducts,
   ];
 
   return {

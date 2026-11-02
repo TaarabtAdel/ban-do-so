@@ -52,8 +52,21 @@
       html: `<div class="marker${active ? " active" : ""}" style="background:${categoryById[place.category].color}">${categoryById[place.category].svg}</div>`,
     });
 
+  // Các điểm trùng toạ độ (nhiều sản phẩm OCOP của cùng một cơ sở) được xếp toả tròn quanh vị trí cơ sở.
+  const groups = {};
+  places.forEach((p) => (groups[`${p.lat},${p.lng}`] ??= []).push(p));
+  const markerPos = {};
+  Object.values(groups).forEach((group) =>
+    group.forEach((p, i) => {
+      if (group.length === 1) return void (markerPos[p.id] = [p.lat, p.lng]);
+      const angle = (2 * Math.PI * i) / group.length;
+      const r = 0.0004;
+      markerPos[p.id] = [p.lat + r * Math.sin(angle), p.lng + (r * Math.cos(angle)) / Math.cos((p.lat * Math.PI) / 180)];
+    }),
+  );
+
   places.forEach((place) => {
-    markers[place.id] = L.marker([place.lat, place.lng], { icon: markerIcon(place, false), riseOnHover: true })
+    markers[place.id] = L.marker(markerPos[place.id], { icon: markerIcon(place, false), riseOnHover: true })
       .bindTooltip(place.name, { direction: "top", offset: [0, -16] })
       .on("click", () => openPlace(place.id))
       .addTo(map);
@@ -229,7 +242,7 @@
         return `<button type="button" class="cat-tile${count ? "" : " is-empty"}" data-cat="${c.id}">
           <span class="cat-icon" style="background:${c.color}">${c.svg}</span>
           <b>${escapeHtml(c.name)}</b>
-          <small>${count ? `${count} điểm` : "Đang cập nhật"}</small>
+          <small>${count ? `${count} ${c.unit ?? "điểm"}` : "Đang cập nhật"}</small>
         </button>`;
       })
       .join("")}</div>`;
@@ -250,8 +263,8 @@
       </div>
       ${
         count
-          ? `<button type="button" class="show-all" data-show-cat="${id}" style="background:${c.color}">Hiện tất cả ${count} điểm trên bản đồ</button>
-             ${count > 8 ? `<input id="cat-search" class="cat-search" type="search" placeholder="Tìm trong ${escapeHtml(c.name.toLowerCase())}" autocomplete="off" />` : ""}
+          ? `<button type="button" class="show-all" data-show-cat="${id}" style="background:${c.color}">Hiện tất cả ${count} ${c.unit ?? "điểm"} trên bản đồ</button>
+             ${count > 8 ? `<input id="cat-search" class="cat-search" type="search" placeholder="Tìm trong ${escapeHtml(c.name.charAt(0).toLowerCase() + c.name.slice(1))}" autocomplete="off" />` : ""}
              <ul class="cat-places" id="cat-list"></ul>`
           : `<p class="cat-empty">Chưa có dữ liệu, đang cập nhật.</p>`
       }`;
@@ -274,7 +287,7 @@
         .map(
           ({ p, d }) => `<li><button type="button" data-place="${p.id}">
             <span class="dot" style="background:${c.color}"></span>
-            <span><b>${escapeHtml(p.name)}</b><small>${escapeHtml(p.address)}</small></span>
+            <span><b>${escapeHtml(p.name)}</b><small>${p.stars ? `${"★".repeat(p.stars)} · ${escapeHtml(p.producer)}` : escapeHtml(p.address)}</small></span>
             ${d != null ? `<em>${formatDistance(d)}</em>` : ""}
             <span class="go">›</span>
           </button></li>`,
