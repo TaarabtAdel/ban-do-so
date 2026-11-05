@@ -130,8 +130,12 @@
 
     openSheet({
       html: `
-        <div class="cover" style="background:linear-gradient(135deg, ${c.color}, ${c.color}99)">
-          ${c.svg}
+        <div class="cover${place.photo ? " photo" : ""}" style="background:linear-gradient(135deg, ${c.color}, ${c.color}99)">
+          ${
+            place.photo
+              ? `<a href="${escapeHtml(place.photo)}" target="_blank" rel="noopener"><img src="${escapeHtml(place.photo)}" alt="${escapeHtml(place.name)}" /></a>`
+              : c.svg
+          }
           <button type="button" class="icon-btn" data-close aria-label="Đóng">✕</button>
         </div>
         <span class="tag" style="background:${c.color}">${escapeHtml(place.tag ?? c.name)}</span>

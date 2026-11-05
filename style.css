@@ -397,6 +397,23 @@ button {
   height: 56px;
 }
 
+.cover.photo {
+  height: auto;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.cover.photo a {
+  position: absolute;
+  inset: 0;
+}
+
+.cover.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .cover .icon-btn {
   position: absolute;
   top: 10px;
