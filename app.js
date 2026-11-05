@@ -52,7 +52,8 @@
       className: "",
       iconSize: [34, 34],
       iconAnchor: [17, 17],
-      html: `<div class="marker${active ? " active" : ""}" style="background:${categoryById[place.category].color}">${categoryById[place.category].svg}</div>`,
+      html: `<div class="marker${active ? " active" : ""}" style="background:${categoryById[place.category].color}">${categoryById[place.category].svg}</div>
+        <span class="marker-label">${escapeHtml(place.name)}</span>`,
     });
 
   // Các điểm trùng toạ độ (nhiều sản phẩm OCOP của cùng một cơ sở) được xếp toả tròn quanh vị trí cơ sở.
@@ -70,10 +71,23 @@
 
   places.forEach((place) => {
     markers[place.id] = L.marker(markerPos[place.id], { icon: markerIcon(place, false), riseOnHover: true })
-      .bindTooltip(place.name, { direction: "top", offset: [0, -16] })
+      .bindTooltip(place.name, { direction: "top", offset: [0, -16], className: "place-tip" })
       .on("click", () => openPlace(place.id))
       .addTo(map);
   });
+
+  // Ở mức thu nhỏ có quá nhiều điểm, tên sẽ chồng lên nhau nên chỉ hiện khi phóng to đủ gần.
+  const LABELS_KEY = "ban-do-so:hien-ten";
+  const LABELS_MIN_ZOOM = 15;
+  const updateLabels = () =>
+    $("map").classList.toggle("labels-on", $("toggle-labels").checked && map.getZoom() >= LABELS_MIN_ZOOM);
+  $("toggle-labels").checked = localStorage.getItem(LABELS_KEY) !== "0";
+  $("toggle-labels").addEventListener("change", (e) => {
+    localStorage.setItem(LABELS_KEY, e.target.checked ? "1" : "0");
+    updateLabels();
+  });
+  map.on("zoomend", updateLabels);
+  updateLabels();
 
   const setActive = (id, active) => {
     const place = places.find((p) => p.id === id);
