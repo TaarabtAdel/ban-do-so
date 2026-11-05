@@ -76,18 +76,14 @@
       .addTo(map);
   });
 
-  // Ở mức thu nhỏ có quá nhiều điểm, tên sẽ chồng lên nhau nên chỉ hiện khi phóng to đủ gần.
   const LABELS_KEY = "ban-do-so:hien-ten";
-  const LABELS_MIN_ZOOM = 15;
-  const updateLabels = () =>
-    $("map").classList.toggle("labels-on", $("toggle-labels").checked && map.getZoom() >= LABELS_MIN_ZOOM);
-  $("toggle-labels").checked = localStorage.getItem(LABELS_KEY) !== "0";
-  $("toggle-labels").addEventListener("change", (e) => {
-    localStorage.setItem(LABELS_KEY, e.target.checked ? "1" : "0");
-    updateLabels();
-  });
-  map.on("zoomend", updateLabels);
-  updateLabels();
+  const setLabels = (on) => {
+    $("toggle-labels").checked = on;
+    $("map").classList.toggle("labels-on", on);
+    localStorage.setItem(LABELS_KEY, on ? "1" : "0");
+  };
+  setLabels(localStorage.getItem(LABELS_KEY) !== "0");
+  $("toggle-labels").addEventListener("change", (e) => setLabels(e.target.checked));
 
   const setActive = (id, active) => {
     const place = places.find((p) => p.id === id);
