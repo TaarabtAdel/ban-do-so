@@ -16,7 +16,10 @@
   // ---------- Bản đồ ----------
   const esri = (path) => `https://server.arcgisonline.com/ArcGIS/rest/services/${path}/MapServer/tile/{z}/{y}/{x}`;
   const LAYERS = {
-    map: L.tileLayer(esri("World_Street_Map"), { maxZoom: 19, attribution: "&copy; Esri" }),
+    map: L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }),
     satellite: L.layerGroup([
       L.tileLayer(esri("World_Imagery"), { maxZoom: 19, attribution: "&copy; Esri" }),
       L.tileLayer(esri("Reference/World_Boundaries_and_Places"), { maxZoom: 19 }),
