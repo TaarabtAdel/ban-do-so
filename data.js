@@ -1,5 +1,5 @@
 // Toạ độ tham khảo từ Google Maps (qua Exa Places) và OpenStreetMap, tra cứu 30/10/2026. Nên đối soát lại với xã.
-// Các điểm có `photo` dùng toạ độ và ảnh thu thập thực địa (Timemark) ngày 03-04/11/2026.
+// Các điểm có `photo` dùng toạ độ và ảnh thu thập thực địa ngày 03-05/11/2026.
 window.MAP_DATA = (() => {
   const icon = (paths) =>
     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
@@ -115,7 +115,7 @@ window.MAP_DATA = (() => {
       lat: 16.796945,
       lng: 107.24721,
       address: "Thôn Thượng An Phương (Phương An cũ)",
-      photo: "images/ubnd-trieu-co.jpg",
+      photo: "images/tru-so-hdnd-ubnd-trieu-co.jpg",
       description: "Trụ sở chính của xã Triệu Cơ (UBND xã Triệu Cơ cũ), nơi làm việc của HĐND - UBND xã và Trung tâm Phục vụ hành chính công.",
       info: [
         { label: "Giờ làm việc", value: "7:30 - 17:00" },
@@ -142,7 +142,7 @@ window.MAP_DATA = (() => {
       lat: 16.796945,
       lng: 107.24721,
       address: "Thôn Thượng An Phương (Phương An cũ) – trụ sở chính của xã",
-      photo: "images/ubnd-trieu-co.jpg",
+      photo: "images/tru-so-hdnd-ubnd-trieu-co.jpg",
       description: "Hội đồng nhân dân xã Triệu Cơ. Văn phòng HĐND - UBND xã đặt tại trụ sở chính của xã.",
       info: [{ label: "Văn phòng HĐND - UBND", value: "MST 3200751513" }],
     },
@@ -154,7 +154,7 @@ window.MAP_DATA = (() => {
       lat: 16.796945,
       lng: 107.24721,
       address: "Thôn Thượng An Phương (Phương An cũ) – tại trụ sở UBND xã",
-      photo: "images/ubnd-trieu-co.jpg",
+      photo: "images/ttpvhcc-trieu-co.jpg",
       phone: "0948453111",
       description: "Tiếp nhận và trả kết quả thủ tục hành chính: hộ tịch, chứng thực, đất đai, dịch vụ công trực tuyến.",
       info: [
@@ -189,9 +189,10 @@ window.MAP_DATA = (() => {
       id: "cong-an-trieu-co",
       name: "Công an xã Triệu Cơ",
       category: "cong-an",
-      lat: 16.763386,
-      lng: 107.243224,
-      address: "Thôn Ngô Xá Đông (trụ sở UBND xã Triệu Trung cũ)",
+      lat: 16.763333,
+      lng: 107.243056,
+      address: "Thôn Trung Cường (Ngô Xá Đông cũ) – trụ sở UBND xã Triệu Trung cũ",
+      photo: "images/cong-an-trieu-co.jpg",
       description: "Đăng ký cư trú, làm căn cước, tiếp nhận tin báo về an ninh trật tự.",
       info: [{ label: "Trực ban", value: "24/7" }],
     },
