@@ -158,7 +158,7 @@
         ${info ? `<dl class="info" style="background:${c.color}0A">${info}</dl>` : ""}
         <div class="actions${place.phone ? " three" : ""}">
           <a class="action directions" target="_blank" rel="noopener"
-             href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}&travelmode=driving">
+             href="https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}">
             <span>${ICON_DIRECTIONS}</span>Chỉ đường
           </a>
           <button type="button" class="action share" data-share="${place.id}"><span>${ICON_SHARE}</span>Chia sẻ</button>
