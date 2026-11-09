@@ -44,23 +44,23 @@
   fitBoundary();
 
   // ---------- Marker ----------
-  // OCOP + quán ăn/cafe: không ghim mặc định (quá đông); vẫn xem trong danh mục/tìm kiếm; chỉ hiện marker khi lọc đúng nhóm.
-  const MAP_HIDDEN_CATEGORIES = new Set(["ocop", "quan-an", "cafe"]);
-
-  const markerOnMap = (place, filterId) =>
-    MAP_HIDDEN_CATEGORIES.has(place.category) ? filterId === place.category : !filterId || place.category === filterId;
+  // Một số nhóm: vẫn có icon, chỉ ẩn tên trên bản đồ (trừ khi đang chọn / bật tên riêng).
+  const LABEL_QUIET_CATEGORIES = new Set(["ocop", "quan-an", "cafe", "khu-dan-cu"]);
 
   const markers = {};
   let selectedId = null;
 
-  const markerIcon = (place, active) =>
-    L.divIcon({
+  const markerIcon = (place, active) => {
+    const quiet = LABEL_QUIET_CATEGORIES.has(place.category);
+    const labelCls = ["marker-label", quiet && "label-quiet", active && "force-show"].filter(Boolean).join(" ");
+    return L.divIcon({
       className: "",
       iconSize: [34, 34],
       iconAnchor: [17, 17],
       html: `<div class="marker${active ? " active" : ""}" style="background:${categoryById[place.category].color}">${categoryById[place.category].svg}</div>
-        <span class="marker-label">${escapeHtml(place.name)}</span>`,
+        <span class="${labelCls}">${escapeHtml(place.name)}</span>`,
     });
+  };
 
   // Các điểm trùng toạ độ (nhiều sản phẩm OCOP của cùng một cơ sở) được xếp toả tròn quanh vị trí cơ sở.
   const groups = {};
@@ -78,8 +78,8 @@
   places.forEach((place) => {
     markers[place.id] = L.marker(markerPos[place.id], { icon: markerIcon(place, false), riseOnHover: true })
       .bindTooltip(place.name, { direction: "top", offset: [0, -16], className: "place-tip" })
-      .on("click", () => openPlace(place.id));
-    if (markerOnMap(place, null)) markers[place.id].addTo(map);
+      .on("click", () => openPlace(place.id))
+      .addTo(map);
   });
 
   const LABELS_KEY = "ban-do-so:hien-ten";
@@ -330,7 +330,7 @@
   function setFilter(id) {
     filterCategory = id;
     places.forEach((p) => {
-      const show = markerOnMap(p, id);
+      const show = !id || p.category === id;
       if (show && !map.hasLayer(markers[p.id])) markers[p.id].addTo(map);
       if (!show && map.hasLayer(markers[p.id])) markers[p.id].remove();
     });
@@ -365,6 +365,23 @@
   });
 
   // ---------- Tìm kiếm ----------
+  const searchBlob = (p) =>
+    normalize(`${p.name} ${p.address} ${p.tag ?? ""} ${p.description ?? ""} ${categoryById[p.category].name} ${p.id.replace(/-/g, " ")}`);
+
+  const searchScore = (p, q) => {
+    const name = normalize(p.name);
+    const blob = searchBlob(p);
+    const matches = blob.includes(q) || (q === "thon" && p.category === "khu-dan-cu");
+    if (!matches) return -1;
+    let score = 0;
+    if (name === q) score += 200;
+    else if (name.startsWith(q)) score += 120;
+    else if (name.includes(q)) score += 80;
+    else if (p.category === "khu-dan-cu" && q === "thon") score += 70;
+    else if (blob.includes(q)) score += 20;
+    return score;
+  };
+
   const renderResults = () => {
     const q = normalize($("search").value.trim());
     $("search-clear").hidden = !q;
@@ -372,7 +389,12 @@
       $("results").hidden = true;
       return;
     }
-    const found = places.filter((p) => normalize(`${p.name} ${p.address} ${categoryById[p.category].name}`).includes(q)).slice(0, 8);
+    const found = places
+      .map((p) => ({ p, score: searchScore(p, q) }))
+      .filter((row) => row.score >= 0)
+      .sort((a, b) => b.score - a.score || a.p.name.localeCompare(b.p.name, "vi"))
+      .slice(0, 12)
+      .map((row) => row.p);
     $("results").hidden = false;
     $("results").innerHTML = found.length
       ? found

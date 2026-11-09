@@ -359,6 +359,19 @@ button {
   display: none;
 }
 
+#map:not(.labels-on) .marker-label.force-show {
+  display: block;
+}
+
+#map.labels-on .marker-label.label-quiet {
+  display: none;
+}
+
+#map.labels-on .marker.active + .marker-label.label-quiet,
+#map.labels-on .marker-label.label-quiet.force-show {
+  display: block;
+}
+
 .my-location {
   width: 18px;
   height: 18px;
