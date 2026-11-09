@@ -44,6 +44,12 @@
   fitBoundary();
 
   // ---------- Marker ----------
+  // OCOP + quán ăn/cafe: không ghim mặc định (quá đông); vẫn xem trong danh mục/tìm kiếm; chỉ hiện marker khi lọc đúng nhóm.
+  const MAP_HIDDEN_CATEGORIES = new Set(["ocop", "quan-an", "cafe"]);
+
+  const markerOnMap = (place, filterId) =>
+    MAP_HIDDEN_CATEGORIES.has(place.category) ? filterId === place.category : !filterId || place.category === filterId;
+
   const markers = {};
   let selectedId = null;
 
@@ -72,8 +78,8 @@
   places.forEach((place) => {
     markers[place.id] = L.marker(markerPos[place.id], { icon: markerIcon(place, false), riseOnHover: true })
       .bindTooltip(place.name, { direction: "top", offset: [0, -16], className: "place-tip" })
-      .on("click", () => openPlace(place.id))
-      .addTo(map);
+      .on("click", () => openPlace(place.id));
+    if (markerOnMap(place, null)) markers[place.id].addTo(map);
   });
 
   const LABELS_KEY = "ban-do-so:hien-ten";
@@ -324,7 +330,7 @@
   function setFilter(id) {
     filterCategory = id;
     places.forEach((p) => {
-      const show = !id || p.category === id;
+      const show = markerOnMap(p, id);
       if (show && !map.hasLayer(markers[p.id])) markers[p.id].addTo(map);
       if (!show && map.hasLayer(markers[p.id])) markers[p.id].remove();
     });
