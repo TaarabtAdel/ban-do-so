@@ -44,11 +44,18 @@
   fitBoundary();
 
   // ---------- Marker ----------
-  // Một số nhóm: vẫn có icon, chỉ ẩn tên trên bản đồ (trừ khi đang chọn / bật tên riêng).
+  // Tạm ẩn icon một số nhóm (vẫn trong danh mục/tìm kiếm); chỉ hiện khi lọc đúng nhóm hoặc đang chọn điểm.
   const LABEL_QUIET_CATEGORIES = new Set(["ocop", "quan-an", "cafe", "khu-dan-cu"]);
+
+  const markerOnMap = (place, filterId, focusId) => {
+    if (!LABEL_QUIET_CATEGORIES.has(place.category)) return !filterId || place.category === filterId;
+    if (focusId === place.id) return true;
+    return filterId === place.category;
+  };
 
   const markers = {};
   let selectedId = null;
+  let filterCategory = null;
 
   const markerIcon = (place, active) => {
     const quiet = LABEL_QUIET_CATEGORIES.has(place.category);
@@ -95,12 +102,20 @@
     });
   });
 
+  const syncMapMarkers = () => {
+    places.forEach((p) => {
+      const show = markerOnMap(p, filterCategory, selectedId);
+      if (show && !map.hasLayer(markers[p.id])) markers[p.id].addTo(map);
+      if (!show && map.hasLayer(markers[p.id])) markers[p.id].remove();
+    });
+  };
+
   places.forEach((place) => {
     markers[place.id] = L.marker(markerPos[place.id], { icon: markerIcon(place, false), riseOnHover: true })
       .bindTooltip(place.name, { direction: "top", offset: [0, -16], className: "place-tip" })
-      .on("click", () => openPlace(place.id))
-      .addTo(map);
+      .on("click", () => openPlace(place.id));
   });
+  syncMapMarkers();
 
   const LABELS_KEY = "ban-do-so:hien-ten";
   const setLabels = (on) => {
@@ -161,6 +176,7 @@
     if (selectedId && selectedId !== id) setActive(selectedId, false);
     selectedId = id;
     setActive(id, true);
+    syncMapMarkers();
     history.replaceState(null, "", `#${id}`);
 
     const info = (place.info ?? [])
@@ -194,6 +210,7 @@
         if (selectedId !== id) return;
         setActive(id, false);
         selectedId = null;
+        syncMapMarkers();
         history.replaceState(null, "", location.pathname + location.search);
       },
     });
@@ -345,15 +362,9 @@
   });
 
   // ---------- Lọc điểm theo danh mục trên bản đồ ----------
-  let filterCategory = null;
-
   function setFilter(id) {
     filterCategory = id;
-    places.forEach((p) => {
-      const show = !id || p.category === id;
-      if (show && !map.hasLayer(markers[p.id])) markers[p.id].addTo(map);
-      if (!show && map.hasLayer(markers[p.id])) markers[p.id].remove();
-    });
+    syncMapMarkers();
     const chip = $("filter-chip");
     chip.hidden = !id;
     document.querySelector(".demo-note").hidden = !!id;
