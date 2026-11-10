@@ -47,10 +47,12 @@
   // Tạm ẩn icon một số nhóm (vẫn trong danh mục/tìm kiếm); chỉ hiện khi lọc đúng nhóm hoặc đang chọn điểm.
   const LABEL_QUIET_CATEGORIES = new Set(["ocop", "quan-an", "cafe", "khu-dan-cu"]);
 
+  const isMapQuiet = (place) => LABEL_QUIET_CATEGORIES.has(place.category) || place.id.startsWith("tap-hoa-");
+
   const markerOnMap = (place, filterId, focusId) => {
-    if (!LABEL_QUIET_CATEGORIES.has(place.category)) return !filterId || place.category === filterId;
     if (focusId === place.id) return true;
-    return filterId === place.category;
+    if (isMapQuiet(place)) return filterId === place.category;
+    return !filterId || place.category === filterId;
   };
 
   const markers = {};
@@ -58,7 +60,7 @@
   let filterCategory = null;
 
   const markerIcon = (place, active) => {
-    const quiet = LABEL_QUIET_CATEGORIES.has(place.category);
+    const quiet = isMapQuiet(place);
     const labelCls = ["marker-label", quiet && "label-quiet", active && "force-show"].filter(Boolean).join(" ");
     return L.divIcon({
       className: "",
