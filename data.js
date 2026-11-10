@@ -326,6 +326,16 @@ window.MAP_DATA = (() => {
       info: [{ label: "Giờ họp chợ", value: "6:00 - 10:30" }],
     },
     {
+      id: "nghia-trang-trieu-tai",
+      name: "Nghĩa trang liệt sỹ xã Triệu Tài",
+      category: "di-tich",
+      lat: 16.76999,
+      lng: 107.212,
+      address: "Đường Huyện 38, khu vực Triệu Tài (cũ)",
+      photo: "images/nghia-trang-liet-sy-trieu-tai.jpg",
+      description: "Nghĩa trang liệt sỹ khu vực Triệu Tài (nay thuộc xã Triệu Cơ).",
+    },
+    {
       id: "nghia-trang-trieu-son",
       name: "Nghĩa trang liệt sỹ xã Triệu Sơn",
       category: "di-tich",
