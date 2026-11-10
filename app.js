@@ -62,18 +62,38 @@
     });
   };
 
-  // Các điểm trùng toạ độ (nhiều sản phẩm OCOP của cùng một cơ sở) được xếp toả tròn quanh vị trí cơ sở.
-  const groups = {};
-  places.forEach((p) => (groups[`${p.lat},${p.lng}`] ??= []).push(p));
+  // Icon tách nhau khi các điểm gần/trùng toạ độ; link chỉ đường vẫn dùng place.lat/lng gốc.
+  const COLOCATE_M = 35;
+  const distM = (a, b) => {
+    const R = 6371000;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
+  const colocateGroups = [];
+  places.forEach((p) => {
+    const group = colocateGroups.find((g) => distM(g[0], p) < COLOCATE_M);
+    if (group) group.push(p);
+    else colocateGroups.push([p]);
+  });
   const markerPos = {};
-  Object.values(groups).forEach((group) =>
+  colocateGroups.forEach((group) => {
+    const n = group.length;
+    const baseLat = group.reduce((s, p) => s + p.lat, 0) / n;
+    const baseLng = group.reduce((s, p) => s + p.lng, 0) / n;
+    const lngScale = Math.cos((baseLat * Math.PI) / 180);
     group.forEach((p, i) => {
-      if (group.length === 1) return void (markerPos[p.id] = [p.lat, p.lng]);
-      const angle = (2 * Math.PI * i) / group.length;
-      const r = 0.0004;
-      markerPos[p.id] = [p.lat + r * Math.sin(angle), p.lng + (r * Math.cos(angle)) / Math.cos((p.lat * Math.PI) / 180)];
-    }),
-  );
+      if (n === 1) return void (markerPos[p.id] = [p.lat, p.lng]);
+      const ring = Math.floor(i / 8) + 1;
+      const angle = (2 * Math.PI * (i % 8)) / Math.min(n, 8);
+      const r = 0.00032 * ring;
+      markerPos[p.id] = [baseLat + r * Math.sin(angle), baseLng + (r * Math.cos(angle)) / lngScale];
+    });
+  });
 
   places.forEach((place) => {
     markers[place.id] = L.marker(markerPos[place.id], { icon: markerIcon(place, false), riseOnHover: true })
